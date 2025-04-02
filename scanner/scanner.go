@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/colorsakura/synco/utils"
+	"github.com/colorsakura/syncme/utils"
 )
 
 func NewScanner(config ScanConfig) (*Scanner, error) {

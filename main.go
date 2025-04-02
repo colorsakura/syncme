@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/colorsakura/synco/scanner"
-	"github.com/colorsakura/synco/utils"
+	"github.com/colorsakura/syncme/scanner"
+	"github.com/colorsakura/syncme/utils"
 )
 
 func main() {

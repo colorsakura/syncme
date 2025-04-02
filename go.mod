@@ -1,4 +1,4 @@
-module github.com/colorsakura/synco
+module github.com/colorsakura/syncme
 
 go 1.24.1
 
