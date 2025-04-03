@@ -33,6 +33,16 @@ func NewManager(uid string, cfg []string) Manager {
 }
 
 func (m *manager) serve(ctx context.Context) error {
+	<-ctx.Done()
+	return nil
+}
+
+func (m *manager) setup(ctx context.Context) error {
+	m.mut.Lock()
+	defer m.mut.Unlock()
+
+	NewLocal("123456", "", []string{}, "ipv4")
+
 	return nil
 }
 
