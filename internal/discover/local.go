@@ -102,7 +102,24 @@ func (c *localClient) sendAnnouncements(ctx context.Context) error {
 }
 
 func (c *localClient) recvAnnouncements(ctx context.Context) error {
+	b := c.beacon
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		buf, addr := b.Recv()
+		if addr == nil {
+			c.l.Fatal("recvAnnouncements: recv returned nil addr")
+			continue
+		}
+
+		if len(buf) < 2 {
+			c.l.Fatal("recvAnnouncements: recv returned too short buffer")
+			continue
+		}
+		c.l.Printf("recvAnnouncements: recv %d bytes from %s", len(buf), addr)
 	}
-	return nil
 }
