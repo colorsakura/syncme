@@ -125,6 +125,13 @@ func (c *localClient) recvAnnouncements(ctx context.Context) error {
 			c.l.Fatal("recvAnnouncements: recv returned too short buffer")
 			continue
 		}
-		c.l.Printf("recvAnnouncements: recv %d bytes from %s", len(buf), addr)
+
+		var pkg gen.Announce
+		err := proto.Unmarshal(buf, &pkg)
+		if err != nil {
+			c.l.Printf("recvAnnouncements: recv %d bytes from %s: %s", len(buf), addr, err)
+			continue
+		}
+		c.l.Printf("recvAnnouncements: recv %d bytes from %s: id=%x", len(buf), addr, pkg.Id)
 	}
 }
