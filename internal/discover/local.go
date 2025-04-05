@@ -8,10 +8,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/colorsakura/syncme/internal/gen"
 	"github.com/colorsakura/syncme/internal/protocol"
 	"github.com/syncthing/syncthing/lib/beacon"
 	"github.com/syncthing/syncthing/lib/svcutil"
 	"github.com/thejerf/suture/v4"
+	"google.golang.org/protobuf/proto"
 )
 
 type localClient struct {
@@ -87,10 +89,13 @@ func (c *localClient) String() string {
 }
 
 func (c *localClient) sendAnnouncements(ctx context.Context) error {
-	var msg []byte
+	pkg := &gen.Announce{
+		Id: c.uid[:],
+	}
+	bc, _ := proto.Marshal(pkg)
 	for {
 		c.l.Println("sendAnnouncements")
-		c.beacon.Send(msg)
+		c.beacon.Send(bc)
 
 		select {
 		case <-c.localBcastTick:
@@ -116,7 +121,7 @@ func (c *localClient) recvAnnouncements(ctx context.Context) error {
 			continue
 		}
 
-		if len(buf) < 2 {
+		if len(buf) < 1 {
 			c.l.Fatal("recvAnnouncements: recv returned too short buffer")
 			continue
 		}
