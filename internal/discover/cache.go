@@ -5,6 +5,7 @@ import (
 	stdsync "sync"
 	"time"
 
+	"github.com/colorsakura/syncme/internal/protocol"
 	"github.com/thejerf/suture/v4"
 )
 
@@ -27,32 +28,32 @@ type cachedError interface {
 // A cache can be embedded wherever useful
 
 type cache struct {
-	entries map[string]CacheEntry
+	entries map[protocol.DeviceID]CacheEntry
 	mut     stdsync.Mutex
 }
 
 func newCache() *cache {
 	return &cache{
-		entries: make(map[string]CacheEntry),
+		entries: make(map[protocol.DeviceID]CacheEntry),
 	}
 }
 
-func (c *cache) Set(id string, ce CacheEntry) {
+func (c *cache) Set(id protocol.DeviceID, ce CacheEntry) {
 	c.mut.Lock()
 	c.entries[id] = ce
 	c.mut.Unlock()
 }
 
-func (c *cache) Get(id string) (CacheEntry, bool) {
+func (c *cache) Get(id protocol.DeviceID) (CacheEntry, bool) {
 	c.mut.Lock()
 	ce, ok := c.entries[id]
 	c.mut.Unlock()
 	return ce, ok
 }
 
-func (c *cache) Cache() map[string]CacheEntry {
+func (c *cache) Cache() map[protocol.DeviceID]CacheEntry {
 	c.mut.Lock()
-	m := make(map[string]CacheEntry, len(c.entries))
+	m := make(map[protocol.DeviceID]CacheEntry, len(c.entries))
 	maps.Copy(m, c.entries)
 	c.mut.Unlock()
 	return m

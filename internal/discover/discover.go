@@ -4,11 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/colorsakura/syncme/internal/protocol"
 	"github.com/thejerf/suture/v4"
 )
 
 type Finder interface {
-	Lookup(ctx context.Context, uid string) (address []string, err error)
+	Lookup(ctx context.Context, uid protocol.DeviceID) (address []string, err error)
 	Error() error
 	String() string
 }

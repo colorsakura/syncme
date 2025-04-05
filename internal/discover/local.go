@@ -3,10 +3,12 @@ package discover
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"time"
 
+	"github.com/colorsakura/syncme/internal/protocol"
 	"github.com/syncthing/syncthing/lib/beacon"
 	"github.com/syncthing/syncthing/lib/svcutil"
 	"github.com/thejerf/suture/v4"
@@ -14,9 +16,11 @@ import (
 
 type localClient struct {
 	*suture.Supervisor
-	uid      string
+	uid      protocol.DeviceID
 	addrList []string
 	name     string
+
+	l *log.Logger
 
 	beacon          beacon.Interface
 	localBcastStart time.Time
@@ -32,12 +36,12 @@ const (
 	Magic             = uint32(0x2EA7D90B) // same as in BEP
 )
 
-func NewLocal(uid string, addr string, addrList []string, name string) (FinderService, error) {
+func NewLocal(uid protocol.DeviceID, addr string, addrList []string, l *log.Logger) (FinderService, error) {
 	c := &localClient{
 		Supervisor:      suture.New("local", suture.Spec{}),
+		l:               l,
 		uid:             uid,
 		addrList:        addrList,
-		name:            name,
 		localBcastTick:  time.NewTicker(BroadcastInterval).C,
 		forceBcastTick:  make(chan time.Time),
 		localBcastStart: time.Now(),
@@ -65,7 +69,7 @@ func NewLocal(uid string, addr string, addrList []string, name string) (FinderSe
 	return c, nil
 }
 
-func (c *localClient) Lookup(_ context.Context, uid string) (addresses []string, err error) {
+func (c *localClient) Lookup(_ context.Context, uid protocol.DeviceID) (addresses []string, err error) {
 	if cache, ok := c.Get(uid); ok {
 		if time.Since(cache.when) < CacheLifeTime {
 			addresses = cache.Addresses
@@ -85,6 +89,7 @@ func (c *localClient) String() string {
 func (c *localClient) sendAnnouncements(ctx context.Context) error {
 	var msg []byte
 	for {
+		c.l.Println("sendAnnouncements")
 		c.beacon.Send(msg)
 
 		select {
@@ -97,5 +102,7 @@ func (c *localClient) sendAnnouncements(ctx context.Context) error {
 }
 
 func (c *localClient) recvAnnouncements(ctx context.Context) error {
+	for {
+	}
 	return nil
 }

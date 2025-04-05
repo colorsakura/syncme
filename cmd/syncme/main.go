@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/colorsakura/syncme/internal/discover"
+	"github.com/colorsakura/syncme/internal/protocol"
 	"github.com/thejerf/suture/v4"
 )
 
@@ -35,7 +37,9 @@ func (app *App) Start() error {
 
 	go app.wait(errChan)
 
-	discoveryManager := discover.NewManager("123456", []string{})
+	uid, _ := protocol.NewDeviceID([]byte{})
+
+	discoveryManager := discover.NewManager(uid, []string{}, log.Default())
 
 	app.mainService.Add(discoveryManager)
 

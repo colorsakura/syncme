@@ -2,9 +2,12 @@ package discover
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
+	"github.com/colorsakura/syncme/internal/protocol"
+	"github.com/syncthing/syncthing/lib/svcutil"
 	"github.com/thejerf/suture/v4"
 )
 
@@ -15,38 +18,46 @@ type Manager interface {
 
 type manager struct {
 	*suture.Supervisor
-	uid     string
+	uid     protocol.DeviceID
 	cfg     []string
 	finders map[string]cachedFinder
+	l       *log.Logger
 	mut     sync.Mutex
 }
 
-func NewManager(uid string, cfg []string) Manager {
+func NewManager(uid protocol.DeviceID, cfg []string, l *log.Logger) Manager {
 	m := &manager{
-		uid:     uid,
-		cfg:     cfg,
-		finders: make(map[string]cachedFinder),
-		mut:     sync.Mutex{},
+		Supervisor: suture.New("discover.manager", suture.Spec{}),
+		uid:        uid,
+		cfg:        cfg,
+		finders:    make(map[string]cachedFinder),
+		l:          l,
+		mut:        sync.Mutex{},
 	}
-
+	m.Add(svcutil.AsService(m.serve, m.String()))
 	return m
 }
 
 func (m *manager) serve(ctx context.Context) error {
+	m.Setup()
 	<-ctx.Done()
 	return nil
 }
 
-func (m *manager) setup(ctx context.Context) error {
+func (m *manager) Setup() error {
 	m.mut.Lock()
 	defer m.mut.Unlock()
 
-	NewLocal("123456", "", []string{}, "ipv4")
+	bcd, err := NewLocal(m.uid, ":18080", []string{}, m.l)
+	if err != nil {
+		return err
+	}
 
+	m.Add(bcd)
 	return nil
 }
 
-func (m *manager) Lookup(ctx context.Context, uid string) (addresses []string, err error) {
+func (m *manager) Lookup(ctx context.Context, uid protocol.DeviceID) (addresses []string, err error) {
 	m.mut.Lock()
 	defer m.mut.Unlock()
 	for _, finder := range m.finders {
@@ -67,5 +78,5 @@ func (m *manager) Error() error {
 }
 
 func (m *manager) String() string {
-	return "manager"
+	return "discover.manager"
 }
