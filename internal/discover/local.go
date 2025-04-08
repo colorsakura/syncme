@@ -19,7 +19,7 @@ import (
 type localClient struct {
 	*suture.Supervisor
 	uid      protocol.DeviceID
-	addrList []string
+	addrList AddressLister
 	name     string
 
 	l *log.Logger
@@ -38,7 +38,7 @@ const (
 	Magic             = uint32(0x2EA7D90B) // same as in BEP
 )
 
-func NewLocal(uid protocol.DeviceID, addr string, addrList []string, l *log.Logger) (FinderService, error) {
+func NewLocal(uid protocol.DeviceID, addr string, addrList AddressLister, l *log.Logger) (FinderService, error) {
 	c := &localClient{
 		Supervisor:      suture.New("local", suture.Spec{}),
 		l:               l,

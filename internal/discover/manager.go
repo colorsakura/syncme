@@ -18,21 +18,24 @@ type Manager interface {
 
 type manager struct {
 	*suture.Supervisor
-	uid     protocol.DeviceID
-	cfg     []string
-	finders map[string]cachedFinder
-	l       *log.Logger
-	mut     sync.Mutex
+	uid           protocol.DeviceID
+	cfg           []string
+	addressLister AddressLister
+	finders       map[string]cachedFinder
+
+	l   *log.Logger
+	mut sync.Mutex
 }
 
-func NewManager(uid protocol.DeviceID, cfg []string, l *log.Logger) Manager {
+func NewManager(uid protocol.DeviceID, cfg []string, lister AddressLister, l *log.Logger) Manager {
 	m := &manager{
-		Supervisor: suture.New("discover.manager", suture.Spec{}),
-		uid:        uid,
-		cfg:        cfg,
-		finders:    make(map[string]cachedFinder),
-		l:          l,
-		mut:        sync.Mutex{},
+		Supervisor:    suture.New("discover.manager", suture.Spec{}),
+		uid:           uid,
+		cfg:           cfg,
+		addressLister: lister,
+		finders:       make(map[string]cachedFinder),
+		l:             l,
+		mut:           sync.Mutex{},
 	}
 	m.Add(svcutil.AsService(m.serve, m.String()))
 	return m
@@ -48,7 +51,7 @@ func (m *manager) Setup() error {
 	m.mut.Lock()
 	defer m.mut.Unlock()
 
-	bcd, err := NewLocal(m.uid, ":18080", []string{}, m.l)
+	bcd, err := NewLocal(m.uid, ":18080", m.addressLister, m.l)
 	if err != nil {
 		return err
 	}

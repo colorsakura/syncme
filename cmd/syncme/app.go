@@ -18,6 +18,10 @@ type App struct {
 	stopped           chan struct{}
 }
 
+type lateAddressLister struct {
+	discover.AddressLister
+}
+
 func NewApp() (*App, error) {
 	app := &App{
 		stopped: make(chan struct{}),
@@ -37,9 +41,11 @@ func (app *App) Start() error {
 
 	go app.wait(errChan)
 
+	addrLister := &lateAddressLister{}
+
 	uid, _ := protocol.NewDeviceID([]byte{})
 
-	discoveryManager := discover.NewManager(uid, []string{}, log.Default())
+	discoveryManager := discover.NewManager(uid, []string{}, addrLister, log.Default())
 
 	app.mainService.Add(discoveryManager)
 

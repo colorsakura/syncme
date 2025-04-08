@@ -23,3 +23,7 @@ type FinderService interface {
 	Finder
 	suture.Service
 }
+
+type AddressLister interface {
+	AllAddresses() []string
+}
