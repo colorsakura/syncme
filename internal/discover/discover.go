@@ -9,7 +9,7 @@ import (
 )
 
 type Finder interface {
-	Lookup(ctx context.Context, uid protocol.DeviceID) (address []string, err error)
+	Lookup(ctx context.Context, id protocol.DeviceID) (address []string, err error)
 	Error() error
 	String() string
 }

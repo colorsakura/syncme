@@ -2,6 +2,7 @@ package discover
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
@@ -18,7 +19,8 @@ import (
 
 type localClient struct {
 	*suture.Supervisor
-	uid      protocol.DeviceID
+
+	id       protocol.DeviceID
 	addrList AddressLister
 	name     string
 
@@ -42,7 +44,7 @@ func NewLocal(uid protocol.DeviceID, addr string, addrList AddressLister, l *log
 	c := &localClient{
 		Supervisor:      suture.New("local", suture.Spec{}),
 		l:               l,
-		uid:             uid,
+		id:              uid,
 		addrList:        addrList,
 		localBcastTick:  time.NewTicker(BroadcastInterval).C,
 		forceBcastTick:  make(chan time.Time),
@@ -71,8 +73,8 @@ func NewLocal(uid protocol.DeviceID, addr string, addrList AddressLister, l *log
 	return c, nil
 }
 
-func (c *localClient) Lookup(_ context.Context, uid protocol.DeviceID) (addresses []string, err error) {
-	if cache, ok := c.Get(uid); ok {
+func (c *localClient) Lookup(_ context.Context, id protocol.DeviceID) (addresses []string, err error) {
+	if cache, ok := c.Get(id); ok {
 		if time.Since(cache.when) < CacheLifeTime {
 			addresses = cache.Addresses
 		}
@@ -89,13 +91,21 @@ func (c *localClient) String() string {
 }
 
 func (c *localClient) sendAnnouncements(ctx context.Context) error {
+	var msg []byte
 	pkg := &gen.Announce{
-		Id: c.uid[:],
+		Id: c.id[:],
 	}
-	bc, _ := proto.Marshal(pkg)
+	bs, _ := proto.Marshal(pkg)
+
+	if pktLen := 4 + len(bs); cap(msg) < pktLen {
+		msg = make([]byte, 0, pktLen)
+	}
+	msg = msg[:4]
+	binary.BigEndian.PutUint32(msg, Magic)
+	msg = append(msg, bs...)
 	for {
 		c.l.Println("sendAnnouncements")
-		c.beacon.Send(bc)
+		c.beacon.Send(msg)
 
 		select {
 		case <-c.localBcastTick:
@@ -126,12 +136,22 @@ func (c *localClient) recvAnnouncements(ctx context.Context) error {
 			continue
 		}
 
+		if magic := binary.BigEndian.Uint32(buf); magic != Magic {
+			c.l.Printf("recvAnnouncements: recv %d bytes from %s: invalid magic", len(buf), addr)
+			continue
+		}
+
 		var pkg gen.Announce
 		err := proto.Unmarshal(buf, &pkg)
 		if err != nil {
 			c.l.Printf("recvAnnouncements: recv %d bytes from %s: %s", len(buf), addr, err)
 			continue
 		}
+
+		c.Set(protocol.DeviceID(pkg.Id), CacheEntry{
+			Addresses: pkg.Addresses,
+			when:      time.Now(),
+		})
 		c.l.Printf("recvAnnouncements: recv %d bytes from %s: id=%x", len(buf), addr, pkg.Id)
 	}
 }

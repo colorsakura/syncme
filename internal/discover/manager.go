@@ -18,7 +18,7 @@ type Manager interface {
 
 type manager struct {
 	*suture.Supervisor
-	uid           protocol.DeviceID
+	id            protocol.DeviceID
 	cfg           []string
 	addressLister AddressLister
 	finders       map[string]cachedFinder
@@ -27,10 +27,10 @@ type manager struct {
 	mut sync.Mutex
 }
 
-func NewManager(uid protocol.DeviceID, cfg []string, lister AddressLister, l *log.Logger) Manager {
+func NewManager(id protocol.DeviceID, cfg []string, lister AddressLister, l *log.Logger) Manager {
 	m := &manager{
 		Supervisor:    suture.New("discover.manager", suture.Spec{}),
-		uid:           uid,
+		id:            id,
 		cfg:           cfg,
 		addressLister: lister,
 		finders:       make(map[string]cachedFinder),
@@ -51,7 +51,7 @@ func (m *manager) Setup() error {
 	m.mut.Lock()
 	defer m.mut.Unlock()
 
-	bcd, err := NewLocal(m.uid, ":18080", m.addressLister, m.l)
+	bcd, err := NewLocal(m.id, ":18080", m.addressLister, m.l)
 	if err != nil {
 		return err
 	}
@@ -60,13 +60,13 @@ func (m *manager) Setup() error {
 	return nil
 }
 
-func (m *manager) Lookup(ctx context.Context, uid protocol.DeviceID) (addresses []string, err error) {
+func (m *manager) Lookup(ctx context.Context, id protocol.DeviceID) (addresses []string, err error) {
 	m.mut.Lock()
 	defer m.mut.Unlock()
 	for _, finder := range m.finders {
-		if addrs, err := finder.Lookup(ctx, uid); err == nil {
+		if addrs, err := finder.Lookup(ctx, id); err == nil {
 			addresses = append(addresses, addrs...)
-			finder.cache.Set(uid, CacheEntry{
+			finder.cache.Set(id, CacheEntry{
 				Addresses: addrs,
 				when:      time.Now(),
 			})

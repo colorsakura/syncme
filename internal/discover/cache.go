@@ -2,7 +2,7 @@ package discover
 
 import (
 	"maps"
-	stdsync "sync"
+	"sync"
 	"time"
 
 	"github.com/colorsakura/syncme/internal/protocol"
@@ -29,7 +29,7 @@ type cachedError interface {
 
 type cache struct {
 	entries map[protocol.DeviceID]CacheEntry
-	mut     stdsync.Mutex
+	mut     sync.Mutex
 }
 
 func newCache() *cache {
